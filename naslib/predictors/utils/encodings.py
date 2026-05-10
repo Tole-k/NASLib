@@ -1,12 +1,20 @@
 import logging
 
 from naslib.utils.encodings import EncodingType
-from naslib.search_spaces.nasbench101.encodings import encode_101_spec
 from naslib.search_spaces.nasbench201.encodings import encode_adjacency_one_hot_op_indices
 from naslib.search_spaces.nasbench301.encodings import encode_darts_compact
-from naslib.search_spaces.transbench101.encodings import encode_adjacency_one_hot_transbench_micro_op_indices, \
-    encode_adjacency_one_hot_transbench_macro_op_indices
-from naslib.search_spaces.nasbench101.conversions import convert_tuple_to_spec
+try:
+    from naslib.search_spaces.nasbench101.encodings import encode_101_spec
+    from naslib.search_spaces.nasbench101.conversions import convert_tuple_to_spec
+except ModuleNotFoundError:
+    encode_101_spec = None
+    convert_tuple_to_spec = None
+try:
+    from naslib.search_spaces.transbench101.encodings import encode_adjacency_one_hot_transbench_micro_op_indices, \
+        encode_adjacency_one_hot_transbench_macro_op_indices
+except ModuleNotFoundError:
+    encode_adjacency_one_hot_transbench_micro_op_indices = None
+    encode_adjacency_one_hot_transbench_macro_op_indices = None
 
 """
 Currently we need search space specific methods.
@@ -20,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 def encode_spec(spec, encoding_type=EncodingType.ADJACENCY_ONE_HOT, ss_type=None):
     if ss_type == 'nasbench101':
+        if encode_101_spec is None or convert_tuple_to_spec is None:
+            raise ModuleNotFoundError("NASBench-101 encoding requires nasbench_pytorch.")
         if isinstance(spec, tuple):
             spec = convert_tuple_to_spec(spec)
         return encode_101_spec(spec, encoding_type=encoding_type)
@@ -28,8 +38,12 @@ def encode_spec(spec, encoding_type=EncodingType.ADJACENCY_ONE_HOT, ss_type=None
     elif ss_type == 'nasbench301':
         return encode_darts_compact(spec, encoding_type=encoding_type)
     elif ss_type == 'transbench101_micro' and encoding_type == EncodingType.ADJACENCY_ONE_HOT:
+        if encode_adjacency_one_hot_transbench_micro_op_indices is None:
+            raise ModuleNotFoundError("TransBench-101 encoding requires optional NASLib dependencies.")
         return encode_adjacency_one_hot_transbench_micro_op_indices(spec)
     elif ss_type == 'transbench101_macro' and encoding_type == EncodingType.ADJACENCY_ONE_HOT:
+        if encode_adjacency_one_hot_transbench_macro_op_indices is None:
+            raise ModuleNotFoundError("TransBench-101 encoding requires optional NASLib dependencies.")
         return encode_adjacency_one_hot_transbench_macro_op_indices(spec)
     else:
         raise NotImplementedError(f'No implementation found for encoding search space {ss_type} with {encoding_type}')

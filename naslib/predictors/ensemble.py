@@ -8,14 +8,24 @@ from naslib.predictors.gcn import GCNPredictor
 from naslib.predictors.bonas import BonasPredictor
 from naslib.predictors.bnn import DNGOPredictor, BOHAMIANN, BayesianLinearRegression
 from naslib.predictors.seminas import SemiNASPredictor
-from naslib.predictors.gp import (
-    GPPredictor,
-    SparseGPPredictor,
-    VarSparseGPPredictor,
-    GPWLPredictor,
-)
-from naslib.predictors.omni_ngb import OmniNGBPredictor
-from naslib.predictors.omni_seminas import OmniSemiNASPredictor
+try:
+    from naslib.predictors.gp import (
+        GPPredictor,
+        SparseGPPredictor,
+        VarSparseGPPredictor,
+        GPWLPredictor,
+    )
+except (ImportError, AssertionError):
+    GPPredictor = None
+    SparseGPPredictor = None
+    VarSparseGPPredictor = None
+    GPWLPredictor = None
+try:
+    from naslib.predictors.omni_ngb import OmniNGBPredictor
+    from naslib.predictors.omni_seminas import OmniSemiNASPredictor
+except ModuleNotFoundError:
+    OmniNGBPredictor = None
+    OmniSemiNASPredictor = None
 from naslib.utils.encodings import EncodingType
 
 
@@ -64,13 +74,6 @@ class Ensemble(Predictor):
                 zc_only=self.zc_only
             ),
             "gcn": GCNPredictor(ss_type=self.ss_type, encoding_type=EncodingType.GCN),
-            "gp": GPPredictor(ss_type=self.ss_type, encoding_type=EncodingType.ADJACENCY_ONE_HOT),
-            "gpwl": GPWLPredictor(
-                ss_type=self.ss_type,
-                kernel_type="wloa",
-                optimize_gp_hyper=True,
-                h="auto",
-            ),
             "mlp": MLPPredictor(
                 ss_type=self.ss_type, encoding_type=EncodingType.ADJACENCY_ONE_HOT
             ),
@@ -92,24 +95,16 @@ class Ensemble(Predictor):
             "seminas": SemiNASPredictor(
                 ss_type=self.ss_type, semi=True, encoding_type=EncodingType.SEMINAS
             ),
-            "sparse_gp": SparseGPPredictor(
-                ss_type=self.ss_type,
-                encoding_type=EncodingType.ADJACENCY_ONE_HOT,
-                optimize_gp_hyper=True,
-            ),
-            "var_sparse_gp": VarSparseGPPredictor(
-                ss_type=self.ss_type,
-                encoding_type=EncodingType.ADJACENCY_ONE_HOT,
-                optimize_gp_hyper=True,
-                zc=False,
-            ),
             "xgb": XGBoost(
                 ss_type=self.ss_type, 
                 zc=self.zc, 
                 encoding_type=EncodingType.ADJACENCY_ONE_HOT,
                 zc_only=self.zc_only
             ),
-            "omni_ngb": OmniNGBPredictor(
+        }
+
+        if OmniNGBPredictor is not None:
+            trainable_predictors["omni_ngb"] = OmniNGBPredictor(
                 zero_cost=["jacov"],
                 lce=[],
                 encoding_type=EncodingType.ADJACENCY_ONE_HOT,
@@ -118,8 +113,9 @@ class Ensemble(Predictor):
                 n_hypers=25,
                 min_train_size=0,
                 max_zerocost=100,
-            ),
-            "omni_seminas": OmniSemiNASPredictor(
+            )
+        if OmniSemiNASPredictor is not None:
+            trainable_predictors["omni_seminas"] = OmniSemiNASPredictor(
                 zero_cost=["jacov"],
                 lce=[],
                 encoding_type=EncodingType.SEMINAS,
@@ -128,8 +124,38 @@ class Ensemble(Predictor):
                 semi=True,
                 max_zerocost=1000,
                 config=self.config,
-            ),
-        }
+            )
+
+        if GPPredictor is not None:
+            trainable_predictors["gp"] = GPPredictor(
+                ss_type=self.ss_type, encoding_type=EncodingType.ADJACENCY_ONE_HOT
+            )
+        if GPWLPredictor is not None:
+            trainable_predictors["gpwl"] = GPWLPredictor(
+                ss_type=self.ss_type,
+                kernel_type="wloa",
+                optimize_gp_hyper=True,
+                h="auto",
+            )
+        if SparseGPPredictor is not None:
+            trainable_predictors["sparse_gp"] = SparseGPPredictor(
+                ss_type=self.ss_type,
+                encoding_type=EncodingType.ADJACENCY_ONE_HOT,
+                optimize_gp_hyper=True,
+            )
+        if VarSparseGPPredictor is not None:
+            trainable_predictors["var_sparse_gp"] = VarSparseGPPredictor(
+                ss_type=self.ss_type,
+                encoding_type=EncodingType.ADJACENCY_ONE_HOT,
+                optimize_gp_hyper=True,
+                zc=False,
+            )
+
+        if self.predictor_type not in trainable_predictors:
+            raise KeyError(
+                f"Predictor {self.predictor_type!r} is unavailable. "
+                "If this is a GP predictor, install compatible pyro/torch versions."
+            )
 
         return [
             copy.deepcopy(trainable_predictors[self.predictor_type])

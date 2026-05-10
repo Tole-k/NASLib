@@ -1,24 +1,38 @@
 from .simple_cell.graph import SimpleCellSearchSpace
 from .nasbench301.graph import NasBench301SearchSpace
-from .nasbench101.graph import NasBench101SearchSpace
+try:
+    from .nasbench101.graph import NasBench101SearchSpace
+except ModuleNotFoundError:
+    NasBench101SearchSpace = None
 from .nasbench201.graph import NasBench201SearchSpace
 from .nasbenchnlp.graph import NasBenchNLPSearchSpace
 from .nasbenchasr.graph import NasBenchASRSearchSpace
 from .natsbenchsize.graph import NATSBenchSizeSearchSpace
 from .hierarchical.graph import HierarchicalSearchSpace
-from .transbench101.graph import TransBench101SearchSpaceMicro
-from .transbench101.graph import TransBench101SearchSpaceMacro
+try:
+    from .transbench101.graph import TransBench101SearchSpaceMicro
+    from .transbench101.graph import TransBench101SearchSpaceMacro
+except ModuleNotFoundError:
+    TransBench101SearchSpaceMicro = None
+    TransBench101SearchSpaceMacro = None
 
-from .transbench101.api import TransNASBenchAPI
+try:
+    from .transbench101.api import TransNASBenchAPI
+except ModuleNotFoundError:
+    TransNASBenchAPI = None
 
 # FIXME Adapt to all search spaces
 supported_search_spaces = {
-    "nasbench101": NasBench101SearchSpace,
     "nasbench201": NasBench201SearchSpace,
     "nasbench301": NasBench301SearchSpace,
-    'transbench101_micro': TransBench101SearchSpaceMicro,
-    'transbench101_macro': TransBench101SearchSpaceMacro,
 }
+
+if NasBench101SearchSpace is not None:
+    supported_search_spaces["nasbench101"] = NasBench101SearchSpace
+if TransBench101SearchSpaceMicro is not None:
+    supported_search_spaces["transbench101_micro"] = TransBench101SearchSpaceMicro
+if TransBench101SearchSpaceMacro is not None:
+    supported_search_spaces["transbench101_macro"] = TransBench101SearchSpaceMacro
 
 dataset_n_classes = {
     "cifar10": 10,

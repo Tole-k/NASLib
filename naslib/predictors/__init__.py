@@ -4,7 +4,13 @@ from .bnn import BayesianLinearRegression, BOHAMIANN, DNGOPredictor
 from .early_stopping import EarlyStopping
 from .ensemble import Ensemble
 from .gcn import GCNPredictor
-from .gp import GPPredictor, SparseGPPredictor, VarSparseGPPredictor, GPWLPredictor
+try:
+    from .gp import GPPredictor, SparseGPPredictor, VarSparseGPPredictor, GPWLPredictor
+except (ImportError, AssertionError):
+    GPPredictor = None
+    SparseGPPredictor = None
+    VarSparseGPPredictor = None
+    GPWLPredictor = None
 from .lce import LCEPredictor
 from .lce_m import LCEMPredictor
 from .lcsvr import SVR_Estimator
@@ -13,6 +19,13 @@ from .oneshot import OneShotPredictor
 from .seminas import SemiNASPredictor
 from .soloss import SoLosspredictor
 from .trees import LGBoost, NGBoost, RandomForestPredictor, XGBoost
-from .zerocost import ZeroCost
-from .omni_ngb import OmniNGBPredictor
-from .omni_seminas import OmniSemiNASPredictor
+try:
+    from .zerocost import ZeroCost
+except ModuleNotFoundError:
+    ZeroCost = None
+try:
+    from .omni_ngb import OmniNGBPredictor
+    from .omni_seminas import OmniSemiNASPredictor
+except ModuleNotFoundError:
+    OmniNGBPredictor = None
+    OmniSemiNASPredictor = None
